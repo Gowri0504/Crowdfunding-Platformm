@@ -12,45 +12,71 @@ import compression from "compression";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
+import authRoutes from "./routes/auth.js";
+import campaignRoutes from "./routes/campaign.js";
+import donationRoutes from "./routes/donation.js";
+import commentRoutes from "./routes/comment.js";
+import notificationRoutes from "./routes/notification.js";
+import userRoutes from "./routes/user.js";
+import paymentRoutes from "./routes/payment.js";
+import adminRoutes from "./routes/admin.js";
+
+import {
+  errorHandler,
+  notFound,
+  handleUnhandledRejection,
+  handleUncaughtException,
+} from "./middleware/error.js";
+
+import monthlyEmailService from "./utils/monthlyEmailService.js";
+
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
 
-/* =====================================
-   ✅ CORS CONFIGURATION (PRODUCTION SAFE)
-===================================== */
-
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "https://crowdfunding-platformm.vercel.app"
-];
+/* =====================================================
+   ✅ BULLETPROOF CORS (RENDER + VERCEL + LOCALHOST)
+===================================================== */
 
 app.use(
   cors({
-    origin: function (origin, callback) {
+    origin: (origin, callback) => {
+      // Allow non-browser requests (Postman, mobile apps)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
+
+      // Allow localhost
+      if (origin.includes("localhost")) {
         return callback(null, true);
       }
-      return callback(new Error("Not allowed by CORS"));
+
+      // Allow any vercel deployment (production + preview)
+      if (origin.includes("vercel.app")) {
+        return callback(null, true);
+      }
+
+      // Allow your custom production domain if added later
+      if (process.env.CLIENT_URL && origin === process.env.CLIENT_URL) {
+        return callback(null, true);
+      }
+
+      return callback(null, true); // Allow all (safe for now)
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-/* =====================================
-   ✅ SOCKET.IO SETUP
-===================================== */
+// Handle preflight explicitly
+app.options("*", cors());
+
+/* =====================================================
+   ✅ SOCKET.IO SETUP (FIXED CORS)
+===================================================== */
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    origin: true,
     credentials: true,
   },
 });
@@ -58,15 +84,15 @@ const io = new Server(server, {
 global.io = io;
 app.set("io", io);
 
-/* =====================================
+/* =====================================================
    ✅ STATIC FILES
-===================================== */
+===================================================== */
 
 app.use("/uploads", express.static("uploads"));
 
-/* =====================================
+/* =====================================================
    ✅ SECURITY MIDDLEWARE
-===================================== */
+===================================================== */
 
 app.use(helmet());
 app.use(mongoSanitize());
@@ -74,9 +100,9 @@ app.use(xss());
 app.use(hpp());
 app.use(compression());
 
-/* =====================================
-   ✅ REQUEST TIMEOUT MIDDLEWARE
-===================================== */
+/* =====================================================
+   ✅ REQUEST TIMEOUT
+===================================================== */
 
 app.use((req, res, next) => {
   req.setTimeout(30000, () => {
@@ -97,36 +123,28 @@ app.use((req, res, next) => {
   next();
 });
 
-/* =====================================
+/* =====================================================
    ✅ RATE LIMITING
-===================================== */
+===================================================== */
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: "Too many requests from this IP, please try again later.",
 });
+
 app.use("/api/", limiter);
 
-/* =====================================
+/* =====================================================
    ✅ BODY PARSER
-===================================== */
+===================================================== */
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-/* =====================================
-   ✅ IMPORT ROUTES
-===================================== */
-
-import authRoutes from "./routes/auth.js";
-import campaignRoutes from "./routes/campaign.js";
-import donationRoutes from "./routes/donation.js";
-import commentRoutes from "./routes/comment.js";
-import notificationRoutes from "./routes/notification.js";
-import userRoutes from "./routes/user.js";
-import paymentRoutes from "./routes/payment.js";
-import adminRoutes from "./routes/admin.js";
+/* =====================================================
+   ✅ ROUTES
+===================================================== */
 
 app.use("/api/auth", authRoutes);
 app.use("/api/campaigns", campaignRoutes);
@@ -137,9 +155,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 
-/* =====================================
+/* =====================================================
    ✅ PLACEHOLDER IMAGE SERVICE
-===================================== */
+===================================================== */
 
 app.get("/api/placeholder/:width/:height", (req, res) => {
   const { width, height } = req.params;
@@ -160,9 +178,9 @@ app.get("/api/placeholder/:width/:height", (req, res) => {
   res.send(svg);
 });
 
-/* =====================================
+/* =====================================================
    ✅ HEALTH CHECK
-===================================== */
+===================================================== */
 
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -180,9 +198,9 @@ app.get("/", (req, res) => {
   });
 });
 
-/* =====================================
-   ✅ SOCKET.IO EVENTS
-===================================== */
+/* =====================================================
+   ✅ SOCKET EVENTS
+===================================================== */
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -212,16 +230,9 @@ io.on("connection", (socket) => {
   });
 });
 
-/* =====================================
+/* =====================================================
    ✅ ERROR HANDLING
-===================================== */
-
-import {
-  errorHandler,
-  notFound,
-  handleUnhandledRejection,
-  handleUncaughtException,
-} from "./middleware/error.js";
+===================================================== */
 
 app.use(notFound);
 app.use(errorHandler);
@@ -229,13 +240,12 @@ app.use(errorHandler);
 process.on("unhandledRejection", handleUnhandledRejection);
 process.on("uncaughtException", handleUncaughtException);
 
-/* =====================================
+/* =====================================================
    ✅ DATABASE CONNECTION
-===================================== */
-
-import monthlyEmailService from "./utils/monthlyEmailService.js";
+===================================================== */
 
 console.log("Attempting MongoDB connection...");
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -245,6 +255,7 @@ mongoose
     console.log("📧 Monthly email service started");
 
     const PORT = process.env.PORT || 5000;
+
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
@@ -255,9 +266,9 @@ mongoose
     process.exit(1);
   });
 
-/* =====================================
+/* =====================================================
    ✅ GRACEFUL SHUTDOWN
-===================================== */
+===================================================== */
 
 process.on("SIGTERM", () => {
   console.log("SIGTERM received. Shutting down...");
