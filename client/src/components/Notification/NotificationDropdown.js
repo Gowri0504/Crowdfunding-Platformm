@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaBell, FaCheck, FaEye, FaTimes } from 'react-icons/fa';
+import { FaBell, FaCheck, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationItem from './NotificationItem';
 import axios from 'axios';
@@ -14,7 +14,9 @@ const NotificationDropdown = () => {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
+  /* ===============================
+     Close dropdown when clicking outside
+  =============================== */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -28,78 +30,109 @@ const NotificationDropdown = () => {
     };
   }, []);
 
-  // Fetch notifications when dropdown opens
+  /* ===============================
+     Fetch notifications when opened
+  =============================== */
   useEffect(() => {
     if (isOpen && user) {
       fetchNotifications();
     }
   }, [isOpen, user]);
 
-  // Fetch initial unread count
+  /* ===============================
+     Fetch unread count initially
+  =============================== */
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
     }
   }, [user]);
 
+  /* ===============================
+     Fetch Notifications
+  =============================== */
   const fetchNotifications = async () => {
     setLoading(true);
     try {
       const response = await axios.get('/api/notifications?limit=10');
-      setNotifications(response.data.data.notifications || []);
-      
-      // Mark notifications as seen when opened
+
+      const notifications =
+        response?.data?.data?.notifications ||
+        response?.data?.notifications ||
+        [];
+
+      setNotifications(notifications);
+
+      // Mark as seen
       await axios.put('/api/notifications/mark-seen');
+
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ===============================
+     Fetch Unread Count (FIXED)
+  =============================== */
   const fetchUnreadCount = async () => {
     try {
       const response = await axios.get('/api/notifications?read=false&limit=1');
-      setUnreadCount(response.data.data.pagination?.total || 0);
+
+      const total =
+        response?.data?.data?.pagination?.total ||
+        response?.data?.pagination?.total ||
+        0;
+
+      setUnreadCount(total);
+
     } catch (error) {
       console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
     }
   };
 
+  /* ===============================
+     Mark One As Read
+  =============================== */
   const handleMarkAsRead = async (notificationId) => {
     try {
       await axios.put(`/api/notifications/${notificationId}/read`);
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === notificationId 
+
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif._id === notificationId
             ? { ...notif, isRead: true, readAt: new Date() }
             : notif
         )
       );
-      
-      // Update unread count
+
       setUnreadCount(prev => Math.max(0, prev - 1));
+
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   };
 
+  /* ===============================
+     Mark All As Read
+  =============================== */
   const handleMarkAllAsRead = async () => {
     try {
       await axios.put('/api/notifications/read-all');
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => ({ 
-          ...notif, 
-          isRead: true, 
-          readAt: new Date() 
+
+      setNotifications(prev =>
+        prev.map(notif => ({
+          ...notif,
+          isRead: true,
+          readAt: new Date(),
         }))
       );
-      
+
       setUnreadCount(0);
+
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
@@ -111,10 +144,9 @@ const NotificationDropdown = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Notification Bell Button */}
-      <button 
+      <button
         onClick={toggleDropdown}
-        className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg"
+        className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors rounded-lg"
       >
         <FaBell className="text-lg" />
         {unreadCount > 0 && (
@@ -124,7 +156,6 @@ const NotificationDropdown = () => {
         )}
       </button>
 
-      {/* Notification Dropdown */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -132,73 +163,49 @@ const NotificationDropdown = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden"
+            className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-hidden"
           >
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
-                <div className="flex items-center space-x-2">
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                      title="Mark all as read"
-                    >
-                      <FaCheck className="text-xs" />
-                      <span>Mark all read</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <FaTimes className="text-sm" />
-                  </button>
-                </div>
-              </div>
+            <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+              <h3 className="text-sm font-semibold">Notifications</h3>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  <FaCheck className="inline mr-1" />
+                  Mark all read
+                </button>
+              )}
+              <button onClick={() => setIsOpen(false)}>
+                <FaTimes />
+              </button>
             </div>
 
-            {/* Notifications List */}
             <div className="max-h-80 overflow-y-auto">
               {loading ? (
-                <div className="p-4 text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-sm text-gray-500 mt-2">Loading notifications...</p>
-                </div>
+                <div className="p-4 text-center">Loading...</div>
               ) : notifications.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification._id}
-                      className={`p-3 hover:bg-gray-50 transition-colors ${
-                        !notification.isRead ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''
-                      }`}
-                    >
-                      <NotificationItem
-                        notification={notification}
-                        onMarkAsRead={handleMarkAsRead}
-                        compact={true}
-                      />
-                    </div>
-                  ))}
-                </div>
+                notifications.map(notification => (
+                  <NotificationItem
+                    key={notification._id}
+                    notification={notification}
+                    onMarkAsRead={handleMarkAsRead}
+                    compact
+                  />
+                ))
               ) : (
-                <div className="p-6 text-center">
-                  <FaBell className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500">No notifications yet</p>
-                  <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
+                <div className="p-6 text-center text-sm text-gray-500">
+                  No notifications yet
                 </div>
               )}
             </div>
 
-            {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <div className="px-4 py-3 border-t bg-gray-50">
                 <Link
                   to="/dashboard"
                   onClick={() => setIsOpen(false)}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-sm text-blue-600 hover:text-blue-800"
                 >
                   View all notifications →
                 </Link>
