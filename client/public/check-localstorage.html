@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check LocalStorage</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>LocalStorage Contents</h1>
+  <div>
+    <button id="refreshBtn">Refresh</button>
+    <button id="clearTokenBtn">Clear Token</button>
+  </div>
+  <h2>Token</h2>
+  <pre id="tokenOutput">Loading...</pre>
+  
+  <h2>All LocalStorage Items</h2>
+  <pre id="output">Loading...</pre>
+
+  <script>
+    function displayLocalStorage() {
+      const output = document.getElementById('output');
+      const tokenOutput = document.getElementById('tokenOutput');
+      
+      // Display token
+      const token = localStorage.getItem('token');
+      tokenOutput.textContent = token || 'No token found';
+      
+      // Display all localStorage items
+      let allItems = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        allItems[key] = localStorage.getItem(key);
+      }
+      
+      output.textContent = JSON.stringify(allItems, null, 2);
+    }
+    
+    // Initial display
+    displayLocalStorage();
+    
+    // Refresh button
+    document.getElementById('refreshBtn').addEventListener('click', displayLocalStorage);
+    
+    // Clear token button
+    document.getElementById('clearTokenBtn').addEventListener('click', function() {
+      localStorage.removeItem('token');
+      displayLocalStorage();
+    });
+  </script>
+</body>
+</html>

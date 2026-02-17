@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    input {
+      padding: 8px;
+      margin-bottom: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Login Debugger</h1>
+  
+  <div class="card">
+    <h2>LocalStorage Contents</h2>
+    <button id="refreshStorageBtn">Refresh</button>
+    <button id="clearTokenBtn">Clear Token</button>
+    <h3>Token</h3>
+    <pre id="tokenOutput">Loading...</pre>
+    
+    <h3>All LocalStorage Items</h3>
+    <pre id="storageOutput">Loading...</pre>
+  </div>
+  
+  <div class="card">
+    <h2>Test Authentication</h2>
+    <button id="checkAuthBtn">Check Auth Status</button>
+    <pre id="authOutput">Click button to check...</pre>
+  </div>
+  
+  <div class="card">
+    <h2>Manual Login</h2>
+    <div>
+      <label for="email">Email:</label>
+      <input type="email" id="email" value="gowriprincess0504@gmail.com">
+    </div>
+    <div>
+      <label for="password">Password:</label>
+      <input type="password" id="password" value="password123">
+    </div>
+    <button id="loginBtn">Login</button>
+    <pre id="loginOutput">Click button to login...</pre>
+  </div>
+  
+  <div class="card">
+    <h2>Navigation Test</h2>
+    <button id="goDashboardBtn">Go to Dashboard</button>
+    <button id="goHomeBtn">Go to Home</button>
+    <button id="goProfileBtn">Go to Profile</button>
+  </div>
+
+  <script>
+    // Display localStorage contents
+    function displayLocalStorage() {
+      const storageOutput = document.getElementById('storageOutput');
+      const tokenOutput = document.getElementById('tokenOutput');
+      
+      // Display token
+      const token = localStorage.getItem('token');
+      tokenOutput.textContent = token || 'No token found';
+      
+      // Display all localStorage items
+      let allItems = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        allItems[key] = localStorage.getItem(key);
+      }
+      
+      storageOutput.textContent = JSON.stringify(allItems, null, 2);
+    }
+    
+    // Check authentication status
+    async function checkAuthStatus() {
+      const authOutput = document.getElementById('authOutput');
+      authOutput.textContent = 'Checking...';
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          authOutput.textContent = 'No token found in localStorage';
+          return;
+        }
+        
+        const response = await fetch('http://localhost:5000/api/auth/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        authOutput.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        authOutput.textContent = `Error: ${error.message}`;
+      }
+    }
+    
+    // Manual login
+    async function manualLogin() {
+      const loginOutput = document.getElementById('loginOutput');
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      loginOutput.textContent = 'Logging in...';
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        loginOutput.textContent = JSON.stringify(data, null, 2);
+        
+        if (data.success && data.token) {
+          localStorage.setItem('token', data.token);
+          displayLocalStorage();
+        }
+      } catch (error) {
+        loginOutput.textContent = `Error: ${error.message}`;
+      }
+    }
+    
+    // Initial display
+    displayLocalStorage();
+    
+    // Event listeners
+    document.getElementById('refreshStorageBtn').addEventListener('click', displayLocalStorage);
+    document.getElementById('clearTokenBtn').addEventListener('click', function() {
+      localStorage.removeItem('token');
+      displayLocalStorage();
+    });
+    document.getElementById('checkAuthBtn').addEventListener('click', checkAuthStatus);
+    document.getElementById('loginBtn').addEventListener('click', manualLogin);
+    document.getElementById('goDashboardBtn').addEventListener('click', function() {
+      window.location.href = '/dashboard';
+    });
+    document.getElementById('goHomeBtn').addEventListener('click', function() {
+      window.location.href = '/';
+    });
+    document.getElementById('goProfileBtn').addEventListener('click', function() {
+      window.location.href = '/profile';
+    });
+  </script>
+</body>
+</html>
