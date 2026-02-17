@@ -230,6 +230,14 @@ io.on('connection', (socket) => {
 // Make io accessible to routes
 app.set('io', io);
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Crowdfunding API is running 🚀",
+    environment: process.env.NODE_ENV
+  });
+});
+
+
 // Not found middleware
 app.use(notFound);
 
@@ -270,9 +278,10 @@ process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully...');
   server.close(() => {
     console.log('Process terminated');
-    mongoose.connection.close(false, () => {
-      process.exit(0);
-    });
+mongoose.connection.close().then(() => {
+  console.log("MongoDB disconnected");
+});
+
   });
 });
 
