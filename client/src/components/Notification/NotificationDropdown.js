@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaBell, FaCheck, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationItem from './NotificationItem';
-import axios from 'axios';
+import { notificationsAPI } from '../../services/api';
 import { Link } from 'react-router-dom';
 
 const NotificationDropdown = () => {
@@ -48,13 +48,10 @@ const NotificationDropdown = () => {
     }
   }, [user]);
 
-  /* ===============================
-     Fetch Notifications
-  =============================== */
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/notifications?limit=10');
+      const response = await notificationsAPI.getNotifications({ limit: 10 });
 
       const notifications =
         response?.data?.data?.notifications ||
@@ -62,9 +59,6 @@ const NotificationDropdown = () => {
         [];
 
       setNotifications(notifications);
-
-      // Mark as seen
-      await axios.put('/api/notifications/mark-seen');
 
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -74,19 +68,15 @@ const NotificationDropdown = () => {
     }
   };
 
-  /* ===============================
-     Fetch Unread Count (FIXED)
-  =============================== */
   const fetchUnreadCount = async () => {
     try {
-      const response = await axios.get('/api/notifications?read=false&limit=1');
-
-      const total =
-        response?.data?.data?.pagination?.total ||
-        response?.data?.pagination?.total ||
+      const response = await notificationsAPI.getUnreadCount();
+      const count =
+        response?.data?.data?.count ??
+        response?.data?.count ??
         0;
 
-      setUnreadCount(total);
+      setUnreadCount(count);
 
     } catch (error) {
       console.error('Error fetching unread count:', error);
@@ -94,12 +84,9 @@ const NotificationDropdown = () => {
     }
   };
 
-  /* ===============================
-     Mark One As Read
-  =============================== */
   const handleMarkAsRead = async (notificationId) => {
     try {
-      await axios.put(`/api/notifications/${notificationId}/read`);
+      await notificationsAPI.markAsRead(notificationId);
 
       setNotifications(prev =>
         prev.map(notif =>
@@ -116,12 +103,9 @@ const NotificationDropdown = () => {
     }
   };
 
-  /* ===============================
-     Mark All As Read
-  =============================== */
   const handleMarkAllAsRead = async () => {
     try {
-      await axios.put('/api/notifications/read-all');
+      await notificationsAPI.markAllAsRead();
 
       setNotifications(prev =>
         prev.map(notif => ({
