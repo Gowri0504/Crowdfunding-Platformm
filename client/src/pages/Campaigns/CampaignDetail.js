@@ -382,13 +382,12 @@ const CampaignDetail = () => {
                 {campaign?.images && Array.isArray(campaign.images) && campaign.images.length > 0 ? (
                   <>
                     <img 
-                      src={campaign.images[currentImageIndex].url} 
+                      src={campaign.images[currentImageIndex].url || campaign.images[currentImageIndex]} 
                       alt={campaign.images[currentImageIndex].caption || campaign.title} 
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.style.display = 'none';
-                        e.target.parentNode.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center"><span class="text-gray-500 text-lg">Image not available</span></div>';
+                        e.target.src = '/placeholder-campaign.svg';
                       }}
                     />
                     
@@ -731,7 +730,7 @@ const CampaignDetail = () => {
                                 level="H"
                                 includeMargin={true}
                                 imageSettings={{
-                                  src: '/logo192.png',
+                                  src: '/Dreamlift Logo.png',
                                   excavate: true,
                                   width: 40,
                                   height: 40,
@@ -745,7 +744,7 @@ const CampaignDetail = () => {
                                 level="H"
                                 includeMargin={true}
                                 imageSettings={{
-                                  src: '/logo192.png',
+                                  src: '/Dreamlift Logo.png',
                                   excavate: true,
                                   width: 40,
                                   height: 40,

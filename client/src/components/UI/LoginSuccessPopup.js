@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCheckCircle, FaUser } from 'react-icons/fa';
+import { FaCheckCircle } from 'react-icons/fa';
+import DreamliftLogo from './DreamliftLogo';
 
 const LoginSuccessPopup = ({ show, user, onComplete }) => {
   const [stage, setStage] = useState(0);
@@ -68,7 +69,7 @@ const LoginSuccessPopup = ({ show, user, onComplete }) => {
               </p>
             </motion.div>
 
-            {/* User Avatar */}
+            {/* User Avatar / Logo */}
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ 
@@ -87,7 +88,7 @@ const LoginSuccessPopup = ({ show, user, onComplete }) => {
                     onError={() => setAvatarError(true)}
                   />
                 ) : (
-                  <FaUser className="text-2xl text-blue-500" />
+                  <DreamliftLogo size="small" />
                 )}
               </div>
             </motion.div>

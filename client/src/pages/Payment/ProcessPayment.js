@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import axios from 'axios';
+import axios from '../../axios';
 import toast from 'react-hot-toast';
 import { FaArrowLeft, FaCreditCard, FaLock } from 'react-icons/fa';
 

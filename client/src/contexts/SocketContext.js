@@ -29,6 +29,11 @@ export const SocketProvider = ({ children }) => {
         socketInstance.on('connect', () => {
           console.log('Socket connected');
           setConnected(true);
+          
+          // Join user-specific room for personal notifications
+          if (user && user._id) {
+            socketInstance.emit('join-user', user._id);
+          }
         });
         
         socketInstance.on('disconnect', () => {

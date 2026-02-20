@@ -347,19 +347,44 @@ const Dashboard = () => {
   useEffect(() => {
     if (socket && socket.connected) {
       // Listen for new donations to user's campaigns
-      socket.on('newDonation', (donation) => {
-        setDonations(prev => ({
-          ...prev,
-          received: [donation, ...prev.received]
-        }));
-        toast.success(`New donation received: $${donation.amount}`);
+      socket.on('new-donation', (payload) => {
+        const donation = payload?.donation || payload;
+        const campaignUpdate = payload?.campaign;
+
+        if (donation) {
+          setDonations(prev => ({
+            ...prev,
+            received: [donation, ...(prev.received || [])]
+          }));
+
+          toast.success(`New donation received: $${donation.amount}`);
+        }
+
+        if (campaignUpdate && campaignUpdate._id) {
+          setCampaigns(prev => {
+            const newCampaigns = { ...prev };
+
+            Object.keys(newCampaigns).forEach(key => {
+              newCampaigns[key] = (newCampaigns[key] || []).filter(c => c._id !== campaignUpdate._id);
+            });
+
+            if (campaignUpdate.status === 'active') {
+              newCampaigns.active = [campaignUpdate, ...(newCampaigns.active || [])];
+            } else if (['completed', 'successful', 'expired'].includes(campaignUpdate.status)) {
+              newCampaigns.completed = [campaignUpdate, ...(newCampaigns.completed || [])];
+            } else if (campaignUpdate.status === 'draft') {
+              newCampaigns.drafts = [campaignUpdate, ...(newCampaigns.drafts || [])];
+            }
+
+            return newCampaigns;
+          });
+        }
       });
       
       // Listen for new notifications
-      socket.on('newNotification', (notification) => {
-        setNotifications(prev => [notification, ...prev]);
+      socket.on('new-notification', (notification) => {
+        setNotifications(prev => [notification, ...(prev || [])]);
         
-        // Show toast notification with appropriate icon based on type
         let icon = '🔔';
         switch (notification.type) {
           case 'donation_received':
@@ -383,29 +408,30 @@ const Dashboard = () => {
           icon: icon,
           duration: 5000,
           onClick: () => {
-            // Navigate to the appropriate tab when clicked
-            setActiveTab(3); // Notifications tab
+            setActiveTab(3);
           }
         });
       });
       
       // Listen for campaign status updates
-      socket.on('campaignUpdate', (updatedCampaign) => {
+      socket.on('campaign-update', (data) => {
+        const updatedCampaign = data?.campaign || data;
+
+        if (!updatedCampaign || !updatedCampaign._id) return;
+
         setCampaigns(prev => {
           const newCampaigns = { ...prev };
           
-          // Remove from all categories first
           Object.keys(newCampaigns).forEach(key => {
-            newCampaigns[key] = newCampaigns[key].filter(c => c._id !== updatedCampaign._id);
+            newCampaigns[key] = (newCampaigns[key] || []).filter(c => c._id !== updatedCampaign._id);
           });
           
-          // Add to appropriate category
           if (updatedCampaign.status === 'active') {
-            newCampaigns.active.unshift(updatedCampaign);
+            newCampaigns.active = [updatedCampaign, ...(newCampaigns.active || [])];
           } else if (['completed', 'successful', 'expired'].includes(updatedCampaign.status)) {
-            newCampaigns.completed.unshift(updatedCampaign);
+            newCampaigns.completed = [updatedCampaign, ...(newCampaigns.completed || [])];
           } else if (updatedCampaign.status === 'draft') {
-            newCampaigns.drafts.unshift(updatedCampaign);
+            newCampaigns.drafts = [updatedCampaign, ...(newCampaigns.drafts || [])];
           }
           
           return newCampaigns;
@@ -415,9 +441,9 @@ const Dashboard = () => {
     
     return () => {
       if (socket) {
-        socket.off('newDonation');
-        socket.off('newNotification');
-        socket.off('campaignUpdate');
+        socket.off('new-donation');
+        socket.off('new-notification');
+        socket.off('campaign-update');
       }
     };
   }, [socket, setActiveTab]);

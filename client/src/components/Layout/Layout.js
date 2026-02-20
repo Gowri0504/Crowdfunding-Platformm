@@ -62,8 +62,8 @@ const Layout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
-              <DreamliftLogo size="default" />
+            <Link to="/" className="flex items-center space-x-4">
+              <DreamliftLogo size="xlarge" />
               <span className="text-2xl font-bold text-gray-800">
                 <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">Dream</span>
                 <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">lift</span>
